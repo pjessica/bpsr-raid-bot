@@ -44,13 +44,14 @@ function setCachedChannelName(id, name) {
 export const data = new SlashCommandBuilder()
   .setName("party")
   .setDescription("Create or manage parties")
-  // /party create
   .addSubcommand((sub) =>
     sub
       .setName("create")
       .setDescription("Create a new party event")
       .addStringOption((opt) => {
-        let o = opt.setName("event").setDescription("Choose an event template").setRequired(true);
+        let o = opt.setName("event")
+          .setDescription("Choose an event template")
+          .setRequired(true);
         for (const t of templates.events.slice(0, 25)) {
           o = o.addChoices({ name: t.name, value: t.id });
         }
@@ -62,22 +63,18 @@ export const data = new SlashCommandBuilder()
       .addStringOption((opt) =>
         opt.setName("time").setDescription("HH:mm (24h)").setRequired(true)
       )
-      .addStringOption((opt) =>
+      .addIntegerOption((opt) =>
         opt
-          .setName("my_role")
-          .setDescription("Your role in this party")
-          .setRequired(true)
-          .addChoices(
-            { name: "Tank", value: "tank" },
-            { name: "DPS", value: "dps" },
-            { name: "Support", value: "support" }
-          )
+          .setName("min_gs")
+          .setDescription("Minimum Gear Score required to join (blank = no minimum)")
+          .setRequired(false)
+          .setMinValue(0)
+          .setMaxValue(50000)
       )
       .addStringOption((opt) =>
         opt.setName("description").setDescription("Optional description").setRequired(false)
       )
   )
-  // /party close
   .addSubcommand((sub) =>
     sub
       .setName("close")
@@ -91,6 +88,7 @@ export const data = new SlashCommandBuilder()
       )
   );
 
+
 export async function execute(interaction) {
   const sub = interaction.options.getSubcommand();
 
@@ -98,77 +96,44 @@ export async function execute(interaction) {
   // /party create
   // -----------------------------
   if (sub === "create") {
-    await interaction.deferReply(); // acknowledge ASAP
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply(); // not ephemeral
+    }
     try {
-      // Inputs
       const eventKey = interaction.options.getString("event");
       const dateStr = interaction.options.getString("date")?.trim();
       const timeStr = interaction.options.getString("time")?.trim();
-      const chosenRole = interaction.options.getString("my_role");
+      const minGs = interaction.options.getInteger("min_gs") ?? null;
       const desc = interaction.options.getString("description")?.trim() || undefined;
 
-      // Validate template
       const template = templateMap.get(eventKey);
-      if (!template) {
-        await interaction.editReply({ content: "❌ Unknown event template." });
-        return;
-      }
-      if (!Array.isArray(template.lanes) || template.lanes.length === 0) {
-        await interaction.editReply({
-          content: "❌ Template has no lanes configured. Please fix `events_templates.json`.",
-        });
-        return;
-      }
-      for (const [i, l] of template.lanes.entries()) {
-        if (
-          !l ||
-          typeof l.key !== "string" ||
-          typeof l.name !== "string" ||
-          !Number.isFinite(Number(l.capacity))
-        ) {
-          await interaction.editReply({
-            content: `❌ Lane #${i + 1} is invalid. Each lane needs { key, name, capacity } (emoji optional).`,
-          });
-          return;
-        }
-      }
+      if (!template) return interaction.editReply({ content: "❌ Unknown event template." });
 
-      // Validate date/time
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || !/^\d{2}:\d{2}$/.test(timeStr)) {
-        await interaction.editReply({
-          content: "❌ Invalid date/time. Use **YYYY-MM-DD** and **HH:mm** (24h).",
-        });
-        return;
-      }
       const localISO = `${dateStr}T${timeStr}:00`;
       const start = new Date(localISO);
       if (Number.isNaN(start.getTime())) {
-        await interaction.editReply({ content: "❌ Could not parse the date/time you entered." });
-        return;
+        return interaction.editReply({ content: "❌ Invalid date/time." });
       }
       if (start.getTime() < Date.now() + 30_000) {
-        await interaction.editReply({
-          content: "❌ Start time must be in the future. Please pick a later time.",
-        });
-        return;
+        return interaction.editReply({ content: "❌ Start time must be in the future." });
       }
       const startUtc = start.toISOString();
       const unix = Math.floor(start.getTime() / 1000);
 
-      // Insert event
       const eventId = shortId("evt");
       const guildId = interaction.guild.id;
       const channelId = interaction.channel.id;
       const creatorId = interaction.user.id;
       const nowIso = new Date().toISOString();
 
+      // create event
       await exec(
         `INSERT INTO events
          (id, guild_id, channel_id, message_id, thread_id, voice_channel_id,
           template_id, title, description, image_url, start_time_utc, reminder_offset_m,
-          status, creator_id, created_at_utc, updated_at_utc)
+          status, creator_id, created_at_utc, updated_at_utc, min_gear_score)
          VALUES (?, ?, ?, '', '', '',
-                 ?, ?, ?, ?, ?, 10, 'open', ?, ?, ?);`,
+                 ?, ?, ?, ?, ?, 10, 'open', ?, ?, ?, ?);`,
         [
           eventId,
           guildId,
@@ -181,51 +146,67 @@ export async function execute(interaction) {
           creatorId,
           nowIso,
           nowIso,
+          minGs,
         ]
       );
 
-      // (2) Bulk insert lanes in one statement
-      {
-        const values = [];
-        const params = [];
-        template.lanes.forEach((l, i) => {
-          values.push("(?, ?, ?, ?, ?, ?)");
-          params.push(eventId, l.key, l.name, l.emoji || "", Number(l.capacity), i);
-        });
-        await exec(
-          `INSERT INTO lanes (event_id, lane_key, name, emoji, capacity, sort_order)
-           VALUES ${values.join(",")};`,
-          params
-        );
-      }
+      // insert lanes for this event
+      const values = [];
+      const params = [];
+      template.lanes.forEach((l, i) => {
+        values.push("(?, ?, ?, ?, ?, ?)");
+        params.push(eventId, l.key, l.name, l.emoji || "", Number(l.capacity), i);
+      });
+      await exec(
+        `INSERT INTO lanes (event_id, lane_key, name, emoji, capacity, sort_order)
+         VALUES ${values.join(",")};`,
+        params
+      );
 
-      // Fetch lanes
+      // load lanes (for embed + auto-signup)
       const lanes = await exec(
         `SELECT id, lane_key, name, emoji, capacity, sort_order
-         FROM lanes WHERE event_id=? ORDER BY sort_order ASC;`,
+           FROM lanes WHERE event_id=? ORDER BY sort_order ASC;`,
         [eventId]
       );
 
-      // Auto-signup creator
-      const laneRow = await exec(
-        `SELECT id FROM lanes WHERE event_id = ? AND lane_key = ? LIMIT 1;`,
-        [eventId, chosenRole]
-      );
-      if (laneRow[0]) {
-        await exec(
-          `INSERT INTO signups (event_id, lane_id, user_id, joined_at_utc)
-           VALUES (?, ?, ?, datetime('now'));`,
-          [eventId, laneRow[0].id, creatorId]
-        );
+      // 🔹 auto-signup host using their MAIN character (if any)
+      // get main character (role + GS)
+      const mainChar = (await exec(
+        `SELECT c.gear_score AS gs, LOWER(cl.role) AS role
+           FROM characters c
+           JOIN classes cl ON cl.id = c.class_id
+          WHERE c.user_id = ? AND c.guild_id = ? AND c.is_main = 1
+          LIMIT 1;`,
+        [creatorId, guildId]
+      ))[0];
+
+      let creatorAutoLaneId = null;
+      let creatorAutoGS = null;
+
+      if (mainChar) {
+        const lane = lanes.find((l) => (l.lane_key || "").toLowerCase() === (mainChar.role || ""));
+        if (lane) {
+          // If event has min GS, assume host meets it (per your request), but we still store their GS.
+          await exec(
+            `INSERT INTO signups (event_id, lane_id, user_id, gear_score, joined_at_utc)
+             VALUES (?, ?, ?, ?, datetime('now'));`,
+            [eventId, lane.id, creatorId, mainChar.gs ?? null]
+          );
+          creatorAutoLaneId = lane.id;
+          creatorAutoGS = mainChar.gs ?? null;
+        }
       }
 
-      // Build signups-by-lane (reflecting creator)
+      // build signups-by-lane map for embed
       const signupsByLane = new Map(lanes.map((l) => [l.id, []]));
-      if (laneRow[0]) {
-        signupsByLane.get(laneRow[0].id).push(creatorId);
+      if (creatorAutoLaneId) {
+        signupsByLane.get(creatorAutoLaneId).push({
+          user_id: creatorId,
+          gear_score: creatorAutoGS,
+        });
       }
 
-      // Cache static display info
       eventCache.set(eventId, {
         title: template.name,
         description: desc,
@@ -233,10 +214,10 @@ export async function execute(interaction) {
         unix,
         creator_id: creatorId,
         channel_id: channelId,
-        message_id: "", // set after send
+        message_id: "",
       });
 
-      // Build embed
+      // 🔹 make sure minGs always appears on the embed
       const embed = buildEventEmbedDetail({
         title: template.name,
         description: desc,
@@ -246,9 +227,10 @@ export async function execute(interaction) {
         signupsByLane,
         creatorId,
         status: "open",
+        minGs,
       });
 
-      // Buttons (one row for joins + controls row)
+      // build buttons
       const joinRow = new ActionRowBuilder().addComponents(
         ...lanes.map((l) =>
           new ButtonBuilder()
@@ -262,13 +244,12 @@ export async function execute(interaction) {
         new ButtonBuilder().setCustomId(`mgr:${eventId}:v1`).setLabel("⚙️ Manage").setStyle(ButtonStyle.Secondary)
       );
 
-      // Send message
+      // post message
       await interaction.editReply({ embeds: [embed], components: [joinRow, controls] });
       const msg = await interaction.fetchReply();
 
-      // (3) Start thread + create VC in parallel
-      const display = interaction.member?.displayName || interaction.user.username;
-      const vcName = `${display}'s – ${template.name}`;
+      // create thread + voice channel
+      const vcName = `${interaction.user.username}'s – ${template.name}`;
       const categoryId = process.env.DISCORD_PARTY_VOICE_CATEGORY_ID || null;
 
       const [threadRes, vcRes] = await Promise.allSettled([
@@ -283,7 +264,6 @@ export async function execute(interaction) {
       const threadId = threadRes.status === "fulfilled" ? threadRes.value.id : "";
       const vcId = vcRes.status === "fulfilled" ? vcRes.value.id : "";
 
-      // Update event with message/thread/voice IDs
       await exec(
         `UPDATE events
            SET message_id=?, thread_id=?, voice_channel_id=?, updated_at_utc=?
@@ -291,9 +271,16 @@ export async function execute(interaction) {
         [msg.id, threadId, vcId, new Date().toISOString(), eventId]
       );
 
-      // Update cache
       const cached = eventCache.get(eventId);
       if (cached) eventCache.set(eventId, { ...cached, message_id: msg.id });
+
+      // If the host had no main character or no matching lane, give an FYI (but event still created)
+      if (!mainChar) {
+        await interaction.followUp({
+          content: "ℹ️ Party created. You don’t have a **main** character set—use `/character add ... --main true` to mark one.",
+          ephemeral: true,
+        });
+      }
 
       return;
     } catch (err) {
@@ -314,7 +301,7 @@ export async function execute(interaction) {
       const eventId = interaction.options.getString("event");
       const rows = await exec(
         `SELECT id, guild_id, channel_id, message_id, thread_id, voice_channel_id,
-                title, description, image_url, start_time_utc, status, creator_id
+                title, description, image_url, start_time_utc, status, creator_id, min_gear_score
          FROM events WHERE id=?;`,
         [eventId]
       );
@@ -386,6 +373,7 @@ export async function execute(interaction) {
           signupsByLane,
           creatorId: ev.creator_id,
           status: "closed",
+          minGs: ev.min_gear_score,
         });
 
         await msg.edit({ embeds: [closedEmbed], components: [] }); // disable all buttons

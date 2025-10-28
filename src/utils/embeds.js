@@ -10,6 +10,7 @@ export function buildEventEmbedDetail(opts) {
     signupsByLane,
     creatorId,
     status, // "open" | "closed" | "cancelled"
+    minGs,
   } = opts;
 
   // 🧩 Choose prefix emoji + color based on status
@@ -31,9 +32,13 @@ export function buildEventEmbedDetail(opts) {
       break;
   }
 
-  const e = new EmbedBuilder()
-    .setTitle(`${titlePrefix}${title}`)
-    .setColor(color);
+  const e = new EmbedBuilder();
+
+  if (typeof minGs === "number") {
+    e.setTitle(`${titlePrefix}${title} | MIN GS ${minGs}`).setColor(color);
+  } else {
+    e.setTitle(`${titlePrefix}${title}`).setColor(color);
+  }
 
   // ✅ Only set description if present
   if (description && String(description).trim().length > 0) {
@@ -61,7 +66,7 @@ export function buildEventEmbedDetail(opts) {
   // 🧩 Lanes (side-by-side)
   if (Array.isArray(lanes) && lanes.length) {
     for (const l of lanes) {
-      const users = (signupsByLane?.get(l.id) || []).map((u) => `<@${u}>`);
+      const users = (signupsByLane?.get(l.id) || []).map((u) => `<@${u.user_id}> (${u.gear_score ?? 0})`);
       const body = users.length ? users.join("\n") : "_No players_";
       const label = `${(l.emoji ?? "").trim()} ${l.name} (${users.length}/${Number(l.capacity) || 0})`.trim();
       e.addFields({ name: label, value: body, inline: true });
