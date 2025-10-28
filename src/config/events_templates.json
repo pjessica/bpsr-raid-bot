@@ -1,0 +1,44 @@
+{
+  "events": [
+    {
+      "id": "dragonshackles20",
+      "name": "20-Player Dragon Shackles",
+      "image_url": "https://ik.imagekit.io/xoo/bpsr/dragon-shackles-rin.png",
+      "lanes": [
+        { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 4 },
+        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 12 },
+        { "key": "support", "name": "Support", "emoji": "❤️", "capacity": 4 }
+      ]
+    },
+    {
+      "id": "dragonshackles12",
+      "name": "12-Player Dragon Shackles",
+      "image_url": "https://ik.imagekit.io/xoo/bpsr/dragon-shackles-rin.png",
+      "lanes": [
+        { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 2 },
+        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 8 },
+        { "key": "support", "name": "Support", "emoji": "❤️", "capacity": 2 }
+      ]
+    },
+    {
+      "id": "stimenvaults",
+      "name": "Stimen Vaults",
+      "image_url": "https://ik.imagekit.io/xoo/bpsr/stimen-vaults.png",
+      "lanes": [
+        { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 1 },
+        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 3 },
+        { "key": "support", "name": "Support", "emoji": "❤️", "capacity": 1 }
+      ]
+    },
+    {
+      "id": "chaoticrealm",
+      "name": "Chaotic Realm",
+      "image_url": "https://ik.imagekit.io/xoo/bpsr/goblin-lair.png",
+      "lanes": [
+        { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 1 },
+        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 3 },
+        { "key": "support", "name": "Support", "emoji": "❤️", "capacity": 1 }
+      ]
+    }
+  ]
+}

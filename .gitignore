@@ -1,0 +1,50 @@
+# ─────────────────────────────
+# Node.js / Discord Bot Defaults
+# ─────────────────────────────
+
+# Dependency directories
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files (⚠️ keep your tokens safe!)
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Build / dist output (if you ever add a build step)
+dist/
+build/
+out/
+
+# PM2 ecosystem file (if you generate one)
+ecosystem.config.js
+
+# Temp or generated data
+*.sqlite
+*.db
+*.bak
+tmp/
+cache/
+
+# Cloudflare or JSON data you don’t want public
+schema.sql
+config.json
+event_templates.json
+
+# Uploads (if any)
+uploads/

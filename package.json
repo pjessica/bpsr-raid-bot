@@ -1,0 +1,19 @@
+{
+  "name": "discord-raid-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dayjs": "^1.11.18",
+    "discord.js": "^14.24.0",
+    "dotenv": "^17.2.3",
+    "node-fetch": "^3.3.2"
+  }
+}
