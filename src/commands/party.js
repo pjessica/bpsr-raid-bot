@@ -249,7 +249,8 @@ export async function execute(interaction) {
       const msg = await interaction.fetchReply();
 
       // create thread + voice channel
-      const vcName = `${interaction.user.username}'s – ${template.name}`;
+      const display = interaction.member?.displayName || interaction.user.username;
+      const vcName = `${display}'s – ${template.name}`;
       const categoryId = process.env.DISCORD_PARTY_VOICE_CATEGORY_ID || null;
 
       const [threadRes, vcRes] = await Promise.allSettled([
