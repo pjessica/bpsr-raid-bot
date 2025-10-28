@@ -355,13 +355,17 @@ export async function execute(interaction) {
           [eventId]
         );
         const signupRows = await exec(
-          `SELECT lane_id, user_id
+          `SELECT lane_id, user_id, gear_score
            FROM signups WHERE event_id=? ORDER BY joined_at_utc ASC;`,
           [eventId]
         );
+
         const signupsByLane = new Map(lanes.map((l) => [l.id, []]));
         for (const r of signupRows) {
-          signupsByLane.get(r.lane_id)?.push(r.user_id);
+          signupsByLane.get(r.lane_id).push({
+            user_id: r.user_id,
+            gear_score: r.gear_score,
+          });
         }
 
         const unix = Math.floor(new Date(ev.start_time_utc).getTime() / 1000);
