@@ -7,7 +7,8 @@ import { exec } from "../db/d1Client.js";
  *   list   -> list only the caller's characters (private + dismissible)
  *   remove -> character (autocomplete: caller’s chars)   (private + dismissible)
  *   setgs  -> character (autocomplete) + gs (int)        (private + dismissible)
- *   main   -> character (autocomplete)                   (private + dismissible)  [NEW]
+ *   main   -> character (autocomplete)                   (private + dismissible)
+ *   help   -> show quick guide for character commands    (private + dismissible) [NEW]
  */
 export const data = new SlashCommandBuilder()
   .setName("character")
@@ -85,6 +86,11 @@ export const data = new SlashCommandBuilder()
           .setAutocomplete(true)
       )
   )
+  .addSubcommand(sc =>
+    sc
+      .setName("help")
+      .setDescription("Show help for character commands")
+  )
   .setDMPermission(false);
 
 // ---------- Autocomplete for: add.class and remove/setgs/main.character ----------
@@ -150,8 +156,8 @@ export async function execute(interaction) {
   const guildId = interaction.guild.id;
   const userId = interaction.user.id;
 
-  // Make list/remove/setgs/main private & dismissible; add remains public by default
-  const ephemeralSubs = new Set(["list", "remove", "setgs", "main"]);
+  // Make list/remove/setgs/main/help private & dismissible; add remains public by default
+  const ephemeralSubs = new Set(["list", "remove", "setgs", "main", "help"]);
   const makeEphemeral = ephemeralSubs.has(sub);
 
   if (!interaction.deferred && !interaction.replied) {
@@ -247,7 +253,7 @@ export async function execute(interaction) {
     return interaction.editReply(`✅ Updated GS to **${gs}**.`);
   }
 
-  // ----- /character main (autocomplete -> immediate action) [NEW] -----
+  // ----- /character main (autocomplete -> immediate action) -----
   if (sub === "main") {
     const charId = Number(interaction.options.getString("character"));
 
@@ -275,5 +281,33 @@ export async function execute(interaction) {
     ]);
 
     return interaction.editReply(`✅ Set **${row.name} | ${row.sub_class}** as your main.`);
+  }
+
+  // ----- /character help (private) [NEW] -----
+  if (sub === "help") {
+    const help = [
+      "**/character add** — Add a character",
+      "• `class` *(autocomplete from classes table)*",
+      "• `gs` *(integer ≥ 0)*",
+      "• `main` *(optional; if true, sets as your main and clears previous main)*",
+      "",
+      "**/character list** — Show only *your* characters",
+      "• Private & dismissible; numbered 1..n (no DB ids)",
+      "",
+      "**/character remove** — Delete one of your characters",
+      "• `character` *(autocomplete: only shows your characters)*",
+      "• Private & dismissible",
+      "",
+      "**/character setgs** — Update gear score",
+      "• `character` *(autocomplete)*",
+      "• `gs` *(integer ≥ 0)*",
+      "• Private & dismissible",
+      "",
+      "**/character main** — Set your main character",
+      "• `character` *(autocomplete)*",
+      "• Clears any previous main; Private & dismissible",
+    ].join("\n");
+
+    return interaction.editReply(help);
   }
 }
