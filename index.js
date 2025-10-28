@@ -36,16 +36,16 @@ client.once("clientReady", () => console.log(`✅ Logged in as ${client.user.tag
 // Interactions
 client.on("interactionCreate", async (interaction) => {
   try {
-    console.log("🚦 interaction:", {
-      type: interaction.type,
-      commandName: interaction.commandName || null,
-      customId: interaction.customId || null,
-      isAutocomplete: interaction.isAutocomplete?.() || false,
-      isChatInput: interaction.isChatInputCommand?.() || false,
-      isButton: interaction.isButton?.() || false,
-      isStringSelectMenu: interaction.isStringSelectMenu?.() || false,
-      isModal: interaction.isModalSubmit?.() || false,
-    });
+    // console.log("🚦 interaction:", {
+    //   type: interaction.type,
+    //   commandName: interaction.commandName || null,
+    //   customId: interaction.customId || null,
+    //   isAutocomplete: interaction.isAutocomplete?.() || false,
+    //   isChatInput: interaction.isChatInputCommand?.() || false,
+    //   isButton: interaction.isButton?.() || false,
+    //   isStringSelectMenu: interaction.isStringSelectMenu?.() || false,
+    //   isModal: interaction.isModalSubmit?.() || false,
+    // });
 
     if (interaction.isAutocomplete?.()) {
       const cmd = client.commands.get(interaction.commandName);
