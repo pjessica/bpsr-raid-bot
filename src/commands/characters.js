@@ -287,25 +287,21 @@ export async function execute(interaction) {
   if (sub === "help") {
     const help = [
       "**/character add** — Add a character",
-      "• `class` *(autocomplete from classes table)*",
-      "• `gs` *(integer ≥ 0)*",
-      "• `main` *(optional; if true, sets as your main and clears previous main)*",
+      "• `class` *(list of classes)*",
+      "• `gs` *(number, must be more than 0)*",
+      "• `main` *(optional; if true, sets as your main)*",
       "",
       "**/character list** — Show only *your* characters",
-      "• Private & dismissible; numbered 1..n (no DB ids)",
       "",
       "**/character remove** — Delete one of your characters",
-      "• `character` *(autocomplete: only shows your characters)*",
-      "• Private & dismissible",
+      "• `character` *(choose one)*",
       "",
       "**/character setgs** — Update gear score",
-      "• `character` *(autocomplete)*",
-      "• `gs` *(integer ≥ 0)*",
-      "• Private & dismissible",
+      "• `character` *(choose one)*",
+      "• `gs` *(number, must be more than 0)*",
       "",
       "**/character main** — Set your main character",
-      "• `character` *(autocomplete)*",
-      "• Clears any previous main; Private & dismissible",
+      "• `character` *(choose one)*",
     ].join("\n");
 
     return interaction.editReply(help);
