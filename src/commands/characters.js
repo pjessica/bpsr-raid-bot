@@ -166,7 +166,7 @@ export async function execute(interaction) {
   const userNickname = interaction.member?.displayName;
 
   // Make list/remove/setgs/main/help private & dismissible; add remains public by default
-  const ephemeralSubs = new Set(["list", "remove", "setgs", "main", "help"]);
+  const ephemeralSubs = new Set(["add", "list", "remove", "setgs", "main", "help"]);
   const makeEphemeral = ephemeralSubs.has(sub);
 
   if (!interaction.deferred && !interaction.replied) {
