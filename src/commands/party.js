@@ -106,6 +106,42 @@ export async function execute(interaction) {
       const minGs = interaction.options.getInteger("min_gs") ?? null;
       const desc = interaction.options.getString("description")?.trim() || undefined;
 
+      // 🔐 Host GS validation (main character must meet Min GS if provided)
+      if (minGs != null) {
+        // Fetch host's MAIN character
+        const mainChar = (await exec(
+          `SELECT c.gear_score AS gs, LOWER(cl.role) AS role
+            FROM characters c
+            JOIN classes cl ON cl.id = c.class_id
+            WHERE c.user_id = ? AND c.guild_id = ? AND c.is_main = 1
+            LIMIT 1;`,
+          [interaction.user.id, interaction.guild.id]
+        ))[0];
+
+        if (!mainChar) {
+          return interaction.editReply({
+            content:
+              `⛔ You set a Minimum GS of **${minGs}**, but you don’t have a **main** character.\n` +
+              `Add one with **/character add** (tick “main”) or remove the minimum.`,
+          });
+        }
+        if ((mainChar.gs ?? 0) < minGs) {
+          // Optional: show their best GS across all chars to help them decide
+          const best = (await exec(
+            `SELECT MAX(c.gear_score) AS best_gs
+              FROM characters c
+              WHERE c.user_id = ? AND c.guild_id = ?;`,
+            [interaction.user.id, interaction.guild.id]
+          ))[0]?.best_gs ?? 0;
+
+          return interaction.editReply({
+            content:
+              `⛔ Your main character’s GS is **${mainChar.gs ?? 0}**, below the Min GS **${minGs}**.\n` +
+              `Your highest character GS is **${best}**. Either set that one as main with **/character add --main true** (or **/character setgs** as needed), or lower the Min GS.`,
+          });
+        }
+      }
+      
       const template = templateMap.get(eventKey);
       if (!template) return interaction.editReply({ content: "❌ Unknown event template." });
 
