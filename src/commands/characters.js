@@ -155,6 +155,7 @@ export async function execute(interaction) {
   const sub = interaction.options.getSubcommand();
   const guildId = interaction.guild.id;
   const userId = interaction.user.id;
+  const userNickname = interaction.member?.displayName;
 
   // Make list/remove/setgs/main/help private & dismissible; add remains public by default
   const ephemeralSubs = new Set(["list", "remove", "setgs", "main", "help"]);
@@ -184,7 +185,7 @@ export async function execute(interaction) {
     await exec(
       `INSERT INTO characters(user_id, guild_id, class_id, nickname, gear_score, is_main, updated_at_utc)
        VALUES(?,?,?,?,?,?,?);`,
-      [userId, guildId, cls.id, null, gs, isMain, new Date().toISOString()]
+      [userId, guildId, cls.id, userNickname, gs, isMain, new Date().toISOString()]
     );
 
     return interaction.editReply(
