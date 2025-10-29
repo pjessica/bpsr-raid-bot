@@ -178,6 +178,18 @@ export async function execute(interaction) {
     ))[0];
     if (!cls) return interaction.editReply("❌ Unknown class selection. Please pick from the autocomplete list.");
 
+    // check duplicate (same user, guild, class)
+    const exists = await exec(
+      `SELECT 1 FROM characters WHERE user_id=? AND guild_id=? AND class_id=? LIMIT 1;`,
+      [userId, guildId, cls.id]
+    );
+
+    if (exists.length) {
+      return interaction.editReply(
+        `⚠️ You already have **${cls.name} | ${cls.sub_class}** registered. Use **/character setgs** to update GS or **/character main** to change your main.`
+      );
+    }
+
     if (isMain) {
       await exec(`UPDATE characters SET is_main=0 WHERE user_id=? AND guild_id=?;`, [userId, guildId]);
     }
