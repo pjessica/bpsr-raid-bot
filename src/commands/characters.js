@@ -35,7 +35,7 @@ export const data = new SlashCommandBuilder()
         o
           .setName("main")
           .setDescription("Mark as main")
-          .setRequired(false)
+          .setRequired(true)
       )
   )
   .addSubcommand(sc =>

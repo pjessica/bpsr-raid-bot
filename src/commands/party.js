@@ -65,7 +65,7 @@ export const data = new SlashCommandBuilder()
       )
       .addStringOption((opt) =>
         opt
-          .setName("tz_offset")
+          .setName("timezone")
           .setDescription("Your UTC offset, e.g. +13, +13:45, +08, -05")
           .setRequired(true)
       )
@@ -131,7 +131,7 @@ export async function execute(interaction) {
       const eventKey = interaction.options.getString("event");
       const dateStr = interaction.options.getString("date")?.trim();
       const timeStr = interaction.options.getString("time")?.trim();
-      const tzRaw = interaction.options.getString("tz_offset")?.trim()
+      const tzRaw = interaction.options.getString("timezone")?.trim()
         || null;
       const tzSuffix = parseUtcOffsetToTZSuffix(tzRaw);
       const minGs = interaction.options.getInteger("min_gs") ?? null;
@@ -176,9 +176,7 @@ export async function execute(interaction) {
       if (!tzSuffix) {
         return interaction.editReply({
           content:
-            "⚠️ No valid UTC offset provided, so your date/time was interpreted in the server's timezone. " +
-            "Next time, add **tz_offset** (e.g. `+13`, `+08:30`, `-05`). " +
-            "Tip: set `DEFAULT_TZ_OFFSET` in the bot env for a sensible default.",
+            "⚠️ No valid UTC offset provided, please provide your **timezone** (e.g. `+13`, `+08:30`, `-05`) "
         });
       }
       
