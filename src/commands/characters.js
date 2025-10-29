@@ -310,7 +310,7 @@ export async function execute(interaction) {
       "**/character add** — Add a character",
       "• `class` *(list of classes)*",
       "• `gs` *(number, must be more than 0)*",
-      "• `main` *(optional; if true, sets as your main)*",
+      "• `main` *(true/false, if true, sets as your main)*",
       "",
       "**/character list** — Show only *your* characters",
       "",
