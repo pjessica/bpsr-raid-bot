@@ -63,6 +63,12 @@ export const data = new SlashCommandBuilder()
       .addStringOption((opt) =>
         opt.setName("time").setDescription("HH:mm (24h)").setRequired(true)
       )
+      .addStringOption((opt) =>
+        opt
+          .setName("tz_offset")
+          .setDescription("Your UTC offset, e.g. +13, +13:45, +08, -05")
+          .setRequired(true)
+      )
       .addIntegerOption((opt) =>
         opt
           .setName("min_gs")
@@ -90,6 +96,20 @@ export const data = new SlashCommandBuilder()
 
 
 export async function execute(interaction) {
+  function parseUtcOffsetToTZSuffix(raw) {
+    if (!raw) return null;
+    const m = String(raw).trim().match(/^([+-])(\d{1,2})(?::?(\d{2}))?$/);
+    if (!m) return null;
+    const sign = m[1] === "-" ? "-" : "+";
+    const hh = String(m[2]).padStart(2, "0");
+    const mm = String(m[3] ?? "00").padStart(2, "0");
+    // Limit sanity: HH 00..14, MM 00 or 15/30/45 (handles weird zones like +12:45)
+    const H = Number(hh), M = Number(mm);
+    if (H < 0 || H > 14) return null;
+    if (![0,15,30,45].includes(M)) return null;
+    return `${sign}${hh}:${mm}`;
+  }
+
   const allowed = process.env.DISCORD_PARTY_CHANNEL_ID;
   if (!allowed || interaction.channelId !== allowed) {
     return interaction.reply({
@@ -111,6 +131,9 @@ export async function execute(interaction) {
       const eventKey = interaction.options.getString("event");
       const dateStr = interaction.options.getString("date")?.trim();
       const timeStr = interaction.options.getString("time")?.trim();
+      const tzRaw = interaction.options.getString("tz_offset")?.trim()
+        || null;
+      const tzSuffix = parseUtcOffsetToTZSuffix(tzRaw);
       const minGs = interaction.options.getInteger("min_gs") ?? null;
       const desc = interaction.options.getString("description")?.trim() || undefined;
 
@@ -149,11 +172,20 @@ export async function execute(interaction) {
           });
         }
       }
+
+      if (!tzSuffix) {
+        return interaction.editReply({
+          content:
+            "⚠️ No valid UTC offset provided, so your date/time was interpreted in the server's timezone. " +
+            "Next time, add **tz_offset** (e.g. `+13`, `+08:30`, `-05`). " +
+            "Tip: set `DEFAULT_TZ_OFFSET` in the bot env for a sensible default.",
+        });
+      }
       
       const template = templateMap.get(eventKey);
       if (!template) return interaction.editReply({ content: "❌ Unknown event template." });
 
-      const localISO = `${dateStr}T${timeStr}:00`;
+      const localISO = `${dateStr}T${timeStr}:00${tzSuffix ?? ""}`;
       const start = new Date(localISO);
       if (Number.isNaN(start.getTime())) {
         return interaction.editReply({ content: "❌ Invalid date/time." });
