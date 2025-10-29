@@ -92,8 +92,9 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const allowed = process.env.DISCORD_PARTY_CHANNEL_ID;
   if (!allowed || interaction.channelId !== allowed) {
-    return interaction.editReply({
-      content: `⛔ This command can only be used in <#${allowed || "SET_DISCORD_PARTY_CHANNEL_ID"}>.`
+    return interaction.reply({
+      content: `⛔ This command can only be used in <#${allowed || "SET_DISCORD_PARTY_CHANNEL_ID"}>.`,
+      ephemeral: true,
     });
   }
 
