@@ -90,6 +90,13 @@ export const data = new SlashCommandBuilder()
 
 
 export async function execute(interaction) {
+  const allowed = process.env.DISCORD_PARTY_CHANNEL_ID;
+  if (!allowed || interaction.channelId !== allowed) {
+    return interaction.editReply({
+      content: `⛔ This command can only be used in <#${allowed || "SET_DISCORD_PARTY_CHANNEL_ID"}>.`
+    });
+  }
+
   const sub = interaction.options.getSubcommand();
 
   // -----------------------------
@@ -439,6 +446,12 @@ export async function execute(interaction) {
 // Autocomplete for /party close (guild-wide, cached channel names)
 // -----------------------------
 export async function autocomplete(interaction) {
+  const allowed = process.env.DISCORD_PARTY_CHANNEL_ID;
+  if (!allowed || interaction.channelId !== allowed) {
+    // Refuse to suggest outside the allowed channel
+    return interaction.respond([]);
+  }
+
   try {
     if (interaction.options.getSubcommand() !== "close") return;
 
