@@ -178,7 +178,7 @@ export async function handleSelect(interaction) {
     // One row per removed member
     for (const uid of userIds) {
       const memberNickname = removedNameMap.get(uid) || uid;
-      await logPartyAction(db, {
+      await logPartyAction({
         guildId: interaction.guild.id,
         eventId,
         action: 'remove',

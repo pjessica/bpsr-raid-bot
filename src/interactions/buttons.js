@@ -205,7 +205,7 @@ export async function handleButton(interaction) {
         const msg = await ch.messages.fetch(eventRow.message_id);
         await msg.edit({ embeds: [embed], components });
         
-        await logPartyAction(db, {
+        await logPartyAction({
           guildId: guildId,
           eventId,
           action: 'join',
@@ -267,7 +267,7 @@ export async function handleButton(interaction) {
       const msg = await ch.messages.fetch(eventRow.message_id);
       await msg.edit({ embeds: [embed], components });
 
-      await logPartyAction(db, {
+      await logPartyAction({
           guildId: guildId,
           eventId,
           action: 'switch',
@@ -344,7 +344,7 @@ export async function handleButton(interaction) {
       const msg = await ch.messages.fetch(eventRow.message_id);
       await msg.edit({ embeds: [embed], components });
 
-      await logPartyAction(db, {
+      await logPartyAction({
           guildId: guildId,
           eventId,
           action: 'leave',
