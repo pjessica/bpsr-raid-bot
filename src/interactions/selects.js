@@ -33,6 +33,7 @@ function buildComponents(eventId, lanes, signupsByLane) {
   return [joinRow, controls];
 }
 
+/** Lanes + signups (signups as objects: { user_id, gear_score }) */
 async function getLanesAndSignups(eventId) {
   const [lanes, rows] = await Promise.all([
     exec(
@@ -41,7 +42,7 @@ async function getLanesAndSignups(eventId) {
       [eventId]
     ),
     exec(
-      `SELECT lane_id, user_id
+      `SELECT lane_id, user_id, gear_score
        FROM signups
        WHERE event_id=?
        ORDER BY joined_at_utc ASC;`,
@@ -49,10 +50,12 @@ async function getLanesAndSignups(eventId) {
     ),
   ]);
 
-  const signupsByLane = new Map();
+  const signupsByLane = new Map(lanes.map(l => [l.id, []]));
   for (const r of rows) {
-    if (!signupsByLane.has(r.lane_id)) signupsByLane.set(r.lane_id, []);
-    signupsByLane.get(r.lane_id).push(r.user_id);
+    signupsByLane.get(r.lane_id)?.push({
+      user_id: r.user_id,
+      gear_score: r.gear_score,
+    });
   }
   return { lanes, signupsByLane };
 }
@@ -60,7 +63,7 @@ async function getLanesAndSignups(eventId) {
 export async function handleSelect(interaction) {
   if (!interaction.isStringSelectMenu?.()) return;
 
-  // ✅ Acknowledge immediately to avoid 10062
+  // Ack quickly to avoid 10062
   await interaction.deferUpdate();
 
   const [kind, eventId, laneIdStr] = (interaction.customId || "").split(":");
@@ -81,7 +84,7 @@ export async function handleSelect(interaction) {
 
     // Rebuild main event message
     const evRow = (await exec(
-      `SELECT channel_id, message_id, title, description, image_url, start_time_utc
+      `SELECT channel_id, message_id, title, description, image_url, start_time_utc, creator_id, min_gear_score
        FROM events WHERE id=?;`,
       [eventId]
     ))[0];
@@ -98,9 +101,10 @@ export async function handleSelect(interaction) {
     if (!ev) {
       ev = {
         title: evRow.title,
-        description: evRow.description,
-        image_url: evRow.image_url,
+        description: evRow.description || undefined,
+        image_url: evRow.image_url || undefined,
         unix: Math.floor(new Date(evRow.start_time_utc).getTime() / 1000),
+        creator_id: evRow.creator_id,
       };
       eventCache.set(eventId, ev);
     }
@@ -108,7 +112,7 @@ export async function handleSelect(interaction) {
     const { lanes, signupsByLane } = await getLanesAndSignups(eventId);
     const components = buildComponents(eventId, lanes, signupsByLane);
 
-    // Edit the public event message (errors here shouldn't fail the interaction)
+    // Edit the public event message
     try {
       const channel = await interaction.client.channels.fetch(evRow.channel_id);
       const msg = await channel.messages.fetch(evRow.message_id);
@@ -118,7 +122,10 @@ export async function handleSelect(interaction) {
         image_url: ev.image_url,
         unix: ev.unix,
         lanes,
-        signupsByLane,
+        signupsByLane,                // [{ user_id, gear_score }]
+        creatorId: ev.creator_id,
+        status: "open",
+        minGs: evRow.min_gear_score,  // keep Min GS visible
       });
       await msg.edit({ embeds: [embed], components });
     } catch (e) {
@@ -126,7 +133,9 @@ export async function handleSelect(interaction) {
     }
 
     // Refresh the ephemeral manage panel (with display names)
-    const allUserIds = lanes.flatMap((l) => signupsByLane.get(l.id) || []);
+    const allUserIds = lanes.flatMap((l) =>
+      (signupsByLane.get(l.id) || []).map(s => s.user_id)
+    );
     const nameMap = await resolveDisplayNames(interaction.client, interaction.guild.id, allUserIds);
 
     const rows = [];
@@ -134,14 +143,13 @@ export async function handleSelect(interaction) {
       const users = signupsByLane.get(l.id) || [];
 
       if (users.length === 0) {
-        // Disabled menu MUST include at least one option
         const disabled = new StringSelectMenuBuilder()
           .setCustomId(`msel:${eventId}:${l.id}`)
           .setPlaceholder(`${(l.emoji ?? "")} ${l.name} — no players`)
           .setMinValues(1)
           .setMaxValues(1)
           .setDisabled(true)
-          .addOptions({ label: "No players to remove", value: "none" }); // 👈 use addOptions
+          .addOptions({ label: "No players to remove", value: "none" });
         rows.push(new ActionRowBuilder().addComponents(disabled));
         continue;
       }
@@ -152,13 +160,11 @@ export async function handleSelect(interaction) {
         .setMinValues(1)
         .setMaxValues(Math.min(users.length, 25));
 
-      const options = users.map((uid, i) => ({
-        label: `${i + 1}) ${nameMap.get(uid) || uid}`,
-        description: `Remove <@${uid}>`,
-        value: uid,
+      const options = users.map((s, i) => ({
+        label: `${i + 1}) ${nameMap.get(s.user_id) || s.user_id}`,
+        description: `Remove <@${s.user_id}>`,
+        value: s.user_id,
       }));
-
-      // 👇 In discord.js v14, prefer addOptions(...options)
       select.addOptions(...options);
 
       rows.push(new ActionRowBuilder().addComponents(select));
@@ -168,33 +174,30 @@ export async function handleSelect(interaction) {
     const actorNickname =
       interaction.member?.displayName || interaction.user.username || String(interaction.user.id);
 
-    // Resolve nicknames for the removed users (readable logs)
+    // Log one row per removed member (readable names)
     const removedNameMap = await resolveDisplayNames(
       interaction.client,
       interaction.guild.id,
       userIds
     );
-
-    // One row per removed member
     for (const uid of userIds) {
       const memberNickname = removedNameMap.get(uid) || uid;
       await logPartyAction({
         guildId: interaction.guild.id,
         partyId: eventId,
-        action: 'remove',
+        action: "remove",
         actorNickname,
         memberNickname,
       });
     }
 
-    // Update the ephemeral panel in-place
+    // Update the ephemeral manage panel in-place
     await interaction.editReply({
       content: "⚙️ **Manage Party** — select players to remove. Changes update instantly.",
       components: rows,
     });
   } catch (err) {
     console.error("💥 handleSelect error:", err);
-    // ensure we complete the interaction cycle even if something blew up
     try {
       await interaction.editReply({
         content: "❌ Failed to process removal. Please try again.",
