@@ -9,6 +9,7 @@ import { buildEventEmbedDetail } from "../utils/embeds.js";
 import { eventCache } from "../state/cache.js";
 import { isManager } from "../utils/perm.js";
 import { resolveDisplayNames } from "../utils/names.js";
+import { logPartyAction } from "../utils/logPartyAction.js";
 
 /** Build components based on capacity */
 function buildComponents(eventId, lanes, signupsByLane) {
@@ -203,6 +204,15 @@ export async function handleButton(interaction) {
         const ch = await interaction.client.channels.fetch(eventRow.channel_id);
         const msg = await ch.messages.fetch(eventRow.message_id);
         await msg.edit({ embeds: [embed], components });
+        
+        await logPartyAction(db, {
+          guildId: guildId,
+          eventId,
+          action: 'join',
+          actorNickname: interaction.member?.displayName || interaction.user.username,
+          memberNickname: interaction.member?.displayName || interaction.user.username,
+          reason: lane.name,
+        });
 
         return interaction.editReply({
           content: `✅ Signed up to **${lane.name}** (GS ${gs}).`,
@@ -256,6 +266,15 @@ export async function handleButton(interaction) {
       const ch = await interaction.client.channels.fetch(eventRow.channel_id);
       const msg = await ch.messages.fetch(eventRow.message_id);
       await msg.edit({ embeds: [embed], components });
+
+      await logPartyAction(db, {
+          guildId: guildId,
+          eventId,
+          action: 'switch',
+          actorNickname: interaction.member?.displayName || interaction.user.username,
+          memberNickname: interaction.member?.displayName || interaction.user.username,
+          reason: lane.name,
+      });
 
       return interaction.editReply({
         content: `🔁 Switched to **${lane.name}** (GS ${gs}).`,
@@ -324,6 +343,14 @@ export async function handleButton(interaction) {
       const ch = await interaction.client.channels.fetch(eventRow.channel_id);
       const msg = await ch.messages.fetch(eventRow.message_id);
       await msg.edit({ embeds: [embed], components });
+
+      await logPartyAction(db, {
+          guildId: guildId,
+          eventId,
+          action: 'leave',
+          actorNickname: interaction.member?.displayName || interaction.user.username,
+          memberNickname: interaction.member?.displayName || interaction.user.username,
+      });
 
       return interaction.editReply({ content: "🚪 You left the party." });
     }

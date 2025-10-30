@@ -8,6 +8,7 @@ import { exec } from "../db/d1Client.js";
 import { buildEventEmbedDetail } from "../utils/embeds.js";
 import { eventCache } from "../state/cache.js";
 import { resolveDisplayNames } from "../utils/names.js";
+import { logPartyAction } from "../utils/logPartyAction.js";
 
 /** Components for the main event message */
 function buildComponents(eventId, lanes, signupsByLane) {
@@ -161,6 +162,29 @@ export async function handleSelect(interaction) {
       select.addOptions(...options);
 
       rows.push(new ActionRowBuilder().addComponents(select));
+    }
+
+    // Actor = the manager clicking the menu
+    const actorNickname =
+      interaction.member?.displayName || interaction.user.username || String(interaction.user.id);
+
+    // Resolve nicknames for the removed users (readable logs)
+    const removedNameMap = await resolveDisplayNames(
+      interaction.client,
+      interaction.guild.id,
+      userIds
+    );
+
+    // One row per removed member
+    for (const uid of userIds) {
+      const memberNickname = removedNameMap.get(uid) || uid;
+      await logPartyAction(db, {
+        guildId: interaction.guild.id,
+        eventId,
+        action: 'remove',
+        actorNickname,
+        memberNickname,
+      });
     }
 
     // Update the ephemeral panel in-place
