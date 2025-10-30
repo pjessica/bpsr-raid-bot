@@ -206,7 +206,7 @@ export async function handleButton(interaction) {
         await msg.edit({ embeds: [embed], components });
         
         await logPartyAction({
-          guildId: guildId,
+          guildId: interaction.guild.id,
           partyId: eventId,
           action: 'join',
           actorNickname: interaction.member?.displayName || interaction.user.username,
@@ -268,7 +268,7 @@ export async function handleButton(interaction) {
       await msg.edit({ embeds: [embed], components });
 
       await logPartyAction({
-          guildId: guildId,
+          guildId: interaction.guild.id,
           partyId: eventId,
           action: 'switch',
           actorNickname: interaction.member?.displayName || interaction.user.username,
@@ -345,7 +345,7 @@ export async function handleButton(interaction) {
       await msg.edit({ embeds: [embed], components });
 
       await logPartyAction({
-          guildId: guildId,
+          guildId: interaction.guild.id,
           partyId: eventId,
           action: 'leave',
           actorNickname: interaction.member?.displayName || interaction.user.username,
