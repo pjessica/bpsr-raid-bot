@@ -66,7 +66,8 @@ export function buildEventEmbedDetail(opts) {
   // 🧩 Lanes (side-by-side)
   if (Array.isArray(lanes) && lanes.length) {
     for (const l of lanes) {
-      const users = (signupsByLane?.get(l.id) || []).map((u) => `<@${u.user_id}> (${u.gear_score ?? 0})`);
+      // const users = (signupsByLane?.get(l.id) || []).map((u) => `<@${u.user_id}> (${u.gear_score ?? 0})`);
+      const users = (signupsByLane?.get(l.id) || []).map((u) => `<@${u.user_id}>`);
       const body = users.length ? users.join("\n") : "_No players_";
       const label = `${(l.emoji ?? "").trim()} ${l.name} (${users.length}/${Number(l.capacity) || 0})`.trim();
       e.addFields({ name: label, value: body, inline: true });
