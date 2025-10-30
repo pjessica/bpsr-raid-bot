@@ -180,7 +180,7 @@ export async function handleSelect(interaction) {
       const memberNickname = removedNameMap.get(uid) || uid;
       await logPartyAction({
         guildId: interaction.guild.id,
-        eventId,
+        partyId: eventId,
         action: 'remove',
         actorNickname,
         memberNickname,
