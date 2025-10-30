@@ -1,4 +1,4 @@
-import { exec } from "../db/client.js"; // adjust the path as needed
+import { exec } from "../db/d1Client.js";
 
 export async function logPartyAction({
   guildId,
