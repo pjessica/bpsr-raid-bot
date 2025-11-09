@@ -150,6 +150,14 @@ export async function handleButton(interaction) {
       )[0];
       const gs = best?.gs ?? 0;
 
+      if (gs == 0) {
+        return interaction.editReply({
+          content:
+              `⛔ You haven’t registered a character yet.\n` +
+              `Add one with **/character add** (tick “main”) or check **/character help** for help`,
+        });
+      }
+
       if (eventRow.min_gear_score != null && gs < eventRow.min_gear_score) {
         return interaction.editReply({
           content: `⛔ Minimum GS **${eventRow.min_gear_score}**, your best **${laneKey}** GS is **${gs}**.`,
