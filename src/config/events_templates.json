@@ -1,8 +1,18 @@
 {
   "events": [
     {
+      "id": "dragonshackles12",
+      "name": "12-Player Dragon Shackles",
+      "image_url": "https://ik.imagekit.io/xoo/bpsr/dragon-shackles-rin.png",
+      "lanes": [
+        { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 2 },
+        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 8 },
+        { "key": "support", "name": "Support", "emoji": "❤️", "capacity": 2 }
+      ]
+    },
+    {
       "id": "dragonshackles20",
-      "name": "20-Player Dragon Shackles",
+      "name": "20-Player Dragon Raid (4/12/4)",
       "image_url": "https://ik.imagekit.io/xoo/bpsr/dragon-shackles-rin.png",
       "lanes": [
         { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 4 },
@@ -11,12 +21,12 @@
       ]
     },
     {
-      "id": "dragonshackles12",
-      "name": "12-Player Dragon Shackles",
+      "id": "dragonshackles20-2-16-2",
+      "name": "20-Player Dragon Raid (2/16/2)",
       "image_url": "https://ik.imagekit.io/xoo/bpsr/dragon-shackles-rin.png",
       "lanes": [
         { "key": "tank", "name": "Tank", "emoji": "🛡️", "capacity": 2 },
-        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 8 },
+        { "key": "dps", "name": "DPS", "emoji": "⚔️", "capacity": 16 },
         { "key": "support", "name": "Support", "emoji": "❤️", "capacity": 2 }
       ]
     },
